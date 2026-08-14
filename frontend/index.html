@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoadGuard AI — Autonomous Road Infrastructure Diagnostics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root {
+  --bg: #09080e;
+  --panel: #13111c;
+  --panel-light: #1c182b;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-glow: rgba(255, 94, 54, 0.3);
+  --text: #f9f8fc;
+  --muted: #9e95b9;
+  
+  /* Festela Editorial Theme Colors: Warm Flame Coral, Neon Mint, & Cyber Violet */
+  --primary: #ff5e36;
+  --primary-glow: rgba(255, 94, 54, 0.35);
+  --secondary: #9061f9;
+  --accent: #00f5d4;
+  --accent-glow: rgba(0, 245, 212, 0.35);
+  
+  --red: #ff4b4b;
+  --green: #00f5d4;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  transition: all 0.2s ease-out;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: radial-gradient(circle at 50% -10%, #251b3a 0%, #09080e 70%), #09080e;
+  color: var(--text);
+  font-family: "Outfit", sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(4, 2, 9, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo span {
+  color: var(--primary);
+  text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.nav-links {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-links button {
+  background: transparent;
+  color: var(--muted);
+  border: 0;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav-links button:hover, .nav-links button.active {
+  color: var(--text);
+  background: var(--panel-light);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #040209;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(144, 97, 249, 0.5);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 12px 20px;
+  border-radius: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: var(--panel-light);
+  border-color: var(--primary);
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 0 24px;
+}
+
+/* Hero Section */
+.hero {
+  min-height: 80vh;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+  gap: 60px;
+  padding: 60px 0;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.badge {
+  align-self: flex-start;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--primary);
+}
+
+h1 {
+  font-size: clamp(40px, 5.5vw, 68px);
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin: 20px 0;
+  font-weight: 800;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--primary);
+  text-shadow: 0 0 25px var(--primary-glow);
+}
+
+.lead {
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-bottom: 35px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 30px;
+}
+
+.hero-stat h3 {
+  font-size: 28px;
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hero-stat p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Interactive Hero Graphic */
+.hero-visual {
+  position: relative;
+  width: 100%;
+}
+
+.cyber-frame {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.cyber-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(144, 97, 249, 0.05) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.scanner-viewport {
+  height: 280px;
+  background: #06040c;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.scanner-laser {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  box-shadow: 0 0 15px var(--primary);
+  animation: scanLoop 4s infinite linear;
+  z-index: 5;
+}
+
+@keyframes scanLoop {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+.wireframe-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(34, 26, 63, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 26, 63, 0.4) 1px, transparent 1px);
+  background-size: 20px 20px;
+  transform: perspective(300px) rotateX(40deg);
+  transform-origin: bottom;
+  bottom: -40px;
+}
+
+.pothole-target {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 70px;
+  background: #020104;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 20px var(--primary-glow), inset 0 10px 15px rgba(0,0,0,0.8);
+}
+
+.target-crosshair {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  width: 190px;
+  height: 110px;
+  left: calc(50% - 95px);
+  top: calc(50% - 55px);
+  animation: pulseCrosshair 2s infinite ease-in-out;
+}
+
+@keyframes pulseCrosshair {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.overlay-metric {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(12, 9, 25, 0.9);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+/* Core Interface Panels */
+section {
+  padding: 80px 0;
+  border-top: 1px solid var(--line);
+}
+
+.section-title {
+  margin-bottom: 48px;
+}
+
+.section-title h2 {
+  font-size: 36px;
+  font-weight: 800;
+  margin: 8px 0 0;
+}
+
+.section-title p {
+  color: var(--muted);
+  font-size: 16px;
+  margin: 8px 0 0;
+}
+
+/* Main Split View: AI Scanner & Reporter */
+.main-interface {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+}
+
+.panel-container {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* File Upload & Scanner Styling */
+.dropzone {
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(20, 16, 43, 0.2);
+  text-align: center;
+  padding: 40px;
+}
+
+.dropzone:hover {
+  border-color: var(--primary);
+  background: rgba(144, 97, 249, 0.03);
+}
+
+.dropzone input {
+  display: none;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.scan-visualization {
+  display: none;
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #020104;
+}
+
+.uploaded-image {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  display: block;
+}
+
+.scan-overlay-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Key Volumetric Feature Outputs */
+.volumetric-results {
+  display: none;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.metric-card {
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.metric-card.highlight {
+  border-color: rgba(144, 97, 249, 0.4);
+  background: linear-gradient(135deg, var(--panel-light) 0%, rgba(144, 97, 249, 0.05) 100%);
+}
+
+.metric-card small {
+  color: var(--muted);
+  font-size: 13px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.metric-card span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.metric-card.highlight span {
+  color: var(--primary);
+}
+
+/* Unified Smart Dispatch Form */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input[type="text"], input[type="number"], select, textarea {
+  width: 100%;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Fix number input spin buttons */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--primary);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+/* Flagship Innovation: Predictive Road Decay Simulator */
+.decay-container {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 32px;
+}
+
+.decay-sim-view {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.decay-canvas-wrapper {
+  background: #040209;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 250px;
+  position: relative;
+}
+
+.decay-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.sim-controls {
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.slider-group:last-child {
+  margin-bottom: 0;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.slider-header span.val {
+  color: var(--primary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--line);
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.sim-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lifecycle-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.metric-row:last-child {
+  border-bottom: none;
+}
+
+.metric-row span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.metric-row strong {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+}
+
+.danger-tag {
+  background: rgba(255, 75, 75, 0.15);
+  color: var(--red);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Map Section */
+.map-container {
+  height: 500px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* Command Center Dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 32px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.report-table th, .report-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-table td {
+  font-size: 15px;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge.critical {
+  background: rgba(255, 75, 75, 0.1);
+  color: var(--red);
+}
+
+.status-badge.high {
+  background: rgba(144, 97, 249, 0.1);
+  color: var(--primary);
+}
+
+.status-badge.medium {
+  background: rgba(255, 222, 0, 0.1);
+  color: #ffde00;
+}
+
+.status-badge.low {
+  background: rgba(0, 245, 212, 0.1);
+  color: var(--green);
+}
+
+/* Toast System */
+.toast-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--panel-light);
+  border: 1px solid var(--line);
+  padding: 16px 24px;
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(150px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 9999;
+}
+
+.toast-msg.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast-indicator {
+  width: 10px;
+  height: 10px;
+  background: var(--primary);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--primary);
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 40px 0;
+  color: var(--muted);
+  font-size: 14px;
+  background: #020104;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 992px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 40px;
+  }
+  
+  .badge {
+    align-self: center;
+  }
+  
+  .hero-actions {
+    justify-content: center;
+  }
+  
+  .main-interface, .decay-container, .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-container">
+    <div class="logo">ROAD<span>GUARD</span> AI</div>
+    <div class="nav-links">
+      <button class="active" onclick="scrollToSec('home')">Home</button>
+      <button onclick="scrollToSec('scanner')">Scan & Report</button>
+      <button onclick="scrollToSec('mapsec')">Live Map</button>
+      <button onclick="scrollToSec('dashboard')">Console</button>
+      <button onclick="window.location.href='reported_issues.html'">Reported Issues</button>
+    </div>
+    <button class="btn-primary" onclick="scrollToSec('scanner')">Report Issue</button>
+  </div>
+</nav>
+
+<div class="container" id="home">
+  <!-- Hero Section -->
+  <section class="hero" style="border:none;">
+    <div class="hero-content">
+      <div class="badge">Predictive Geospatial Intelligence</div>
+      <h1>Predict. Scan. <em>Repair.</em></h1>
+      <p class="lead">RoadGuard AI leverages edge-based computer vision and volumetric spatial calculations to pinpoint asphalt damage, estimate required repair material, and predict future structural degradation.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="scrollToSec('scanner')">Launch AI Scanner</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <h3>1,492</h3>
+          <p>Total Detections</p>
+        </div>
+        <div class="hero-stat">
+          <h3>₹2.8L</h3>
+          <p>Saved in Maintenance</p>
+        </div>
+        <div class="hero-stat">
+          <h3>94.2%</h3>
+          <p>Resolution Rate</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="cyber-frame">
+        <div class="scanner-viewport">
+          <div class="scanner-laser"></div>
+          <div class="wireframe-grid"></div>
+          <div class="pothole-target"></div>
+          <div class="target-crosshair"></div>
+          <div class="overlay-metric">SCANNING REF: RG-7842</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:16px;align-items:center;">
+          <div>
+            <div style="font-weight:700;font-size:15px;">Target Identification</div>
+            <small style="color:var(--muted)">Spatial analysis running...</small>
+          </div>
+          <span class="status-badge critical">CRITICAL DISPATCH</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Split Panel Interface: Scanner & Reporter -->
+  <section id="scanner">
+    <div class="section-title">
+      <div class="badge">AI Engine</div>
+      <h2>AI Volumetric Scanner & Dispatcher</h2>
+      <p>Upload a roadway damage image to perform real-time depth mapping and material calculations.</p>
+    </div>
+    
+    <div class="main-interface">
+      <!-- AI Scanning Panel -->
+      <div class="panel-container">
+        <h3>1. Damage Profiler</h3>
+        
+        <label class="dropzone" id="dropzone" for="imageInput">
+          <div class="upload-icon">✦</div>
+          <h4>Drop or select road damage photo</h4>
+          <p style="color:var(--muted);font-size:14px;margin:8px 0 20px;">Compatible with JPG, PNG, WebP</p>
+          <div class="btn-secondary" style="pointer-events: none; color: var(--text); border-color: var(--line);">Upload File</div>
+          <input id="imageInput" type="file" accept="image/*">
+        </label>
+        
+        <div class="scan-visualization" id="scanVisual">
+          <img id="preview" class="uploaded-image" alt="Road damage">
+          <canvas id="scanOverlay" class="scan-overlay-canvas"></canvas>
+        </div>
+        
+        <!-- Key Volumetric Feature Outputs -->
+        <div class="volumetric-results" id="volumeResults">
+          <div class="metric-card highlight">
+            <small>EST. EXCAVATION VOLUME</small>
+            <span id="volEst">0.00 m³</span>
+          </div>
+          <div class="metric-card">
+            <small>REQUIRED ASPHALT</small>
+            <span id="asphaltEst">0.0 kg</span>
+          </div>
+          <div class="metric-card">
+            <small>MAX CRATER DEPTH</small>
+            <span id="depthEst">0.0 cm</span>
+          </div>
+          <div class="metric-card">
+            <small>ESTIMATED REPAIR COST</small>
+            <span id="costEst">₹0.00</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Unified Dispatch Form (Removed address, coords, verification count) -->
+      <div class="panel-container">
+        <h3>2. Auto-Populated Dispatch</h3>
+        <div class="field-group">
+          <div class="field">
+            <label>SEVERITY RATING</label>
+            <select id="severitySelect">
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+              <option value="critical">Critical Dispatch</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>AI ASSESSMENT NOTES</label>
+            <textarea id="notesInput" placeholder="Awaiting damage scan profile..."></textarea>
+          </div>
+        </div>
+        <button class="btn-primary" style="width:100%;padding:14px;font-weight:700;" onclick="dispatchReport()">File Official Dispatch</button>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- Live Map Section -->
+  <section id="mapsec">
+    <div class="section-title">
+      <div class="badge">GIS Map</div>
+      <h2>Live Infrastructure Diagnostics Map</h2>
+      <p>Active coordinate monitoring of crowd-verified and AI-diagnosed road hazards.</p>
+    </div>
+    
+    <div style="display:flex; gap:12px; margin-bottom: 24px;">
+       <input type="text" id="mapSearchInput" placeholder="Search your area (e.g. Jubilee Hills, Hyderabad) to file a report..." style="flex:1; padding:14px 16px; border-radius:8px; border:1px solid var(--line); background:var(--panel-light); color:var(--text); outline:none; font-family:'Outfit', sans-serif; font-size:15px;" onkeypress="if(event.key === 'Enter') searchMapLocation()">
+       <button class="btn-primary" onclick="searchMapLocation()">Search Area</button>
+    </div>
+    
+    <div class="map-container" id="map"></div>
+  </section>
+
+  <!-- Command Center Section -->
+  <section id="dashboard">
+    <div class="section-title">
+      <div class="badge">Console</div>
+      <h2>Command Center Queue</h2>
+      <p>Operational interface for road maintenance dispatchers and repair verification.</p>
+    </div>
+    
+    <div class="dashboard-grid">
+      <!-- Active Priority Queue -->
+      <div class="panel-container">
+        <h3>Dispatch Queue</h3>
+        <div class="table-wrapper">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Location</th>
+                <th>Severity</th>
+                <th>Vol. (m³)</th>
+                <th>Verification</th>
+              </tr>
+            </thead>
+            <tbody id="queueBody">
+              <tr>
+                <td>PTH-7842</td>
+                <td>Highway Sector 4</td>
+                <td><span class="status-badge critical">Critical</span></td>
+                <td>0.45</td>
+                <td>AI Verified</td>
+              </tr>
+              <tr>
+                <td>PTH-6921</td>
+                <td>Highway Sector 4</td>
+                <td><span class="status-badge high">High</span></td>
+                <td>0.28</td>
+                <td>AI Verified</td>
+              </tr>
+              <tr>
+                <td>PTH-5104</td>
+                <td>Highway Sector 4</td>
+                <td><span class="status-badge medium">Medium</span></td>
+                <td>0.12</td>
+                <td>AI Verified</td>
+              </tr>
+              <tr>
+                <td>PTH-4091</td>
+                <td>Highway Sector 4</td>
+                <td><span class="status-badge low">Low</span></td>
+                <td>0.04</td>
+                <td>AI Verified</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Operations Statistics & Contact panel -->
+      <div style="display: flex; flex-direction: column; gap: 32px;">
+        <div class="panel-container" style="justify-content:center;">
+          <h3>Operational Summary</h3>
+          <div style="text-align:center;padding:30px 0;">
+            <div style="font-size:72px;font-weight:800;color:var(--primary);line-height:1;margin-bottom:8px;" id="opsMetric">72%</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;">Zone Structural Index</div>
+            <p style="color:var(--muted);font-size:13px;max-width:250px;margin:auto;line-height:1.5;">Average roadway health index monitored across targeted sectors.</p>
+          </div>
+        </div>
+        
+        <div class="panel-container" style="border-color: rgba(0, 245, 212, 0.4); box-shadow: 0 0 20px rgba(0, 245, 212, 0.05);">
+          <h3 style="color: var(--accent); display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            Manual Authority Reports
+          </h3>
+          <p style="font-size: 14px; color: var(--muted); margin: 8px 0 20px; line-height: 1.5;">To manually report a pothole in Hyderabad, Telangana, or other regions for immediate relief, directly contact the GHMC:</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px; background: var(--panel-light); padding: 14px; border-radius: 8px; border: 1px solid var(--line);">
+              <div style="font-size: 20px;">📞</div>
+              <div>
+                <strong style="display: block; color: var(--text);">GHMC Helpline</strong>
+                <a href="tel:040-21111111" style="color: var(--primary); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 15px;">040-21111111</a>
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 12px; background: var(--panel-light); padding: 14px; border-radius: 8px; border: 1px solid var(--line);">
+              <div style="font-size: 20px;">📱</div>
+              <div>
+                <strong style="display: block; color: var(--text);">WhatsApp (Geotagged Photo)</strong>
+                <a href="https://wa.me/919848021665" target="_blank" style="color: var(--green); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 15px;">+91 9848021665</a>
+              </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 12px; background: var(--panel-light); padding: 14px; border-radius: 8px; border: 1px solid var(--line);">
+              <div style="font-size: 20px;">🐦</div>
+              <div>
+                <strong style="display: block; color: var(--text);">Twitter / X</strong>
+                <a href="https://twitter.com/GHMCOnline" target="_blank" style="color: var(--text); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-weight: bold; font-size: 15px;">Tag @GHMCOnline with location</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Manual Report Modal -->
+<div id="manualReportModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,2,9,0.85); backdrop-filter:blur(10px); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:var(--panel); border:1px solid var(--primary); border-radius:16px; width:90%; max-width:500px; padding:30px; box-shadow:0 0 30px rgba(144,97,249,0.3);">
+    <h3 style="color:var(--primary); margin-top:0; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+      File Area Report
+      <button onclick="document.getElementById('manualReportModal').style.display='none'" style="background:transparent; border:none; color:var(--text); font-size:28px; cursor:pointer; line-height:1;">&times;</button>
+    </h3>
+    <div class="field-group" style="gap:16px;">
+      <div class="field">
+        <label>REPORTER NAME</label>
+        <input type="text" id="reporterName" placeholder="Enter your full name">
+      </div>
+      <div class="field">
+        <label>AGE</label>
+        <input type="number" id="reporterAge" min="1" max="120" placeholder="e.g. 28" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>UPLOAD PHOTO</label>
+        <input type="file" id="reporterPhoto" accept="image/*" style="padding:10px;">
+      </div>
+      <div class="field">
+        <label>PROBLEM SUMMARY</label>
+        <textarea id="reporterSummary" placeholder="Describe the road condition or hazard here..." style="min-height:100px;"></textarea>
+      </div>
+      <button class="btn-primary" style="width:100%; padding:14px; margin-top:8px; font-weight:700;" onclick="submitManualReport()">Submit Official Report</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container footer-content">
+    <span>ROADGUARD AI • Smart City Infrastructure Hackathon</span>
+    <span>Autonomous Roadway Damage Profiler</span>
+  </div>
+</footer>
+
+<div class="toast-msg" id="toast">
+  <div class="toast-indicator"></div>
+  <span id="toastText">Report filed successfully</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Scroll function
+function scrollToSec(id) {
+  const target = document.getElementById(id);
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.nav-links button').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.getAttribute('onclick').includes(id)) {
+        btn.classList.add('active');
+      }
+    });
+  }
+}
+
+// Global state variables
+let leafMap;
+let mapMarkers = [];
+
+// Volumetric calculations and scanning animation
+const imageInput = document.getElementById('imageInput');
+const dropzone = document.getElementById('dropzone');
+const scanVisual = document.getElementById('scanVisual');
+const preview = document.getElementById('preview');
+const overlayCanvas = document.getElementById('scanOverlay');
+const volumeResults = document.getElementById('volumeResults');
+
+imageInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Setup file preview
+  preview.src = URL.createObjectURL(file);
+  dropzone.style.display = 'none';
+  scanVisual.style.display = 'block';
+  
+  // Initialize scanning overlays and calculations
+  startScanProcess();
+});
+
+function startScanProcess() {
+  const ctx = overlayCanvas.getContext('2d');
+  overlayCanvas.width = preview.clientWidth;
+  overlayCanvas.height = preview.clientHeight;
+  
+  let scanProgress = 0;
+  
+  // Set up values
+  const maxDepth = (10 + Math.random() * 25).toFixed(1); // cm
+  const estVol = (0.05 + Math.random() * 0.4).toFixed(2); // m3
+  const requiredAsphalt = (estVol * 2400).toFixed(1); // asphalt weight density approx 2400 kg/m3
+  const costEst = (estVol * 18000).toLocaleString('en-IN', { maximumFractionDigits: 0 }); // INR approx cost
+  
+  document.getElementById('notesInput').value = "AI system conducting scanning routines...";
+  
+  // Animation loop representing volumetric scans
+  function animateScan() {
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    
+    // Draw scan sweep bar
+    const y = (scanProgress / 100) * overlayCanvas.height;
+    ctx.strokeStyle = '#9061f9';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(overlayCanvas.width, y);
+    ctx.stroke();
+    
+    // Draw wireframe overlay in scanned area
+    ctx.strokeStyle = 'rgba(0, 245, 212, 0.4)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < overlayCanvas.width; x += 30) {
+      if (y > overlayCanvas.height / 3 && y < (overlayCanvas.height * 2)/3) {
+        ctx.beginPath();
+        ctx.moveTo(x, overlayCanvas.height / 3);
+        ctx.lineTo(x + (Math.random() - 0.5) * 15, (overlayCanvas.height * 2)/3);
+        ctx.stroke();
+      }
+    }
+    
+    scanProgress += 2;
+    if (scanProgress <= 100) {
+      requestAnimationFrame(animateScan);
+    } else {
+      // Completed, draw final bounding box and diagnostics
+      ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      ctx.strokeStyle = '#9061f9';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(overlayCanvas.width * 0.25, overlayCanvas.height * 0.3, overlayCanvas.width * 0.5, overlayCanvas.height * 0.4);
+      
+      ctx.fillStyle = '#9061f9';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText("CRATER IDENTIFIED: RG-P81", overlayCanvas.width * 0.26, overlayCanvas.height * 0.36);
+      ctx.fillText("DEP: " + maxDepth + "cm", overlayCanvas.width * 0.26, overlayCanvas.height * 0.65);
+      
+      // Update form values
+      volumeResults.style.display = 'grid';
+      document.getElementById('volEst').textContent = estVol + " m³";
+      document.getElementById('asphaltEst').textContent = requiredAsphalt + " kg";
+      document.getElementById('depthEst').textContent = maxDepth + " cm";
+      document.getElementById('costEst').textContent = "₹" + costEst;
+      
+      const rating = estVol > 0.3 ? 'critical' : estVol > 0.18 ? 'high' : 'medium';
+      document.getElementById('severitySelect').value = rating;
+      
+      const damagePercentage = (estVol * 22.5).toFixed(1);
+      
+      document.getElementById('notesInput').value = `AI analysis verified a road surface indentation of ${maxDepth} cm maximum depth profile. Volumetric aggregate required: ${requiredAsphalt} kg. Damage index: ${damagePercentage}%. Recommended response priority level: ${rating.toUpperCase()}.`;
+      showToast("Damage scan completed. Volumetric profile loaded.");
+      
+      if (parseFloat(damagePercentage) > 7.0) {
+        setTimeout(() => {
+          if (confirm(`CRITICAL ALERT: Road surface damage index is ${damagePercentage}% (exceeds 7% safety threshold).\n\nDo you want to immediately dispatch a repair crew to fix this issue?`)) {
+            dispatchReport();
+          }
+        }, 800);
+      }
+    }
+  }
+  
+  animateScan();
+}
+
+// File Dispatch & Toast system
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+function dispatchReport() {
+  const severity = document.getElementById('severitySelect').value;
+  const volume = document.getElementById('volEst').textContent !== "0.00 m³" ? document.getElementById('volEst').textContent : "0.15 m³";
+  
+  const id = "PTH-" + Math.floor(1000 + Math.random() * 8999);
+  
+  const dateStr = new Date().toLocaleString();
+  
+  // Save to localStorage for History page
+  let history = JSON.parse(localStorage.getItem('reportsHistory') || '[]');
+  history.push({
+    id: id,
+    location: 'Highway Sector 4',
+    severity: severity,
+    volume: parseFloat(volume).toFixed(2),
+    status: 'pending',
+    date: dateStr
+  });
+  localStorage.setItem('reportsHistory', JSON.stringify(history));
+  
+  // Add to active queue
+  const queue = document.getElementById('queueBody');
+  const newRow = document.createElement('tr');
+  newRow.innerHTML = `
+    <td>${id}</td>
+    <td>Highway Sector 4</td>
+    <td><span class="status-badge ${severity}">${severity.charAt(0).toUpperCase() + severity.slice(1)}</span></td>
+    <td>${parseFloat(volume).toFixed(2)}</td>
+    <td>AI Verified</td>
+  `;
+  queue.insertBefore(newRow, queue.firstChild);
+  
+  // Add pin to map (simulated around Hyderabad center coordinates)
+  const lat = 17.3850 + (Math.random() - 0.5) * 0.08;
+  const lon = 78.4867 + (Math.random() - 0.5) * 0.08;
+  addMarkerToMap(lat, lon, id, severity, Math.floor(60 + Math.random() * 35));
+  
+  showToast(`Dispatch request ${id} successfully logged to central queue.`);
+  
+  // Reset Form
+  document.getElementById('notesInput').value = "";
+  document.getElementById('volEst').textContent = "0.00 m³";
+  document.getElementById('asphaltEst').textContent = "0.0 kg";
+  document.getElementById('depthEst').textContent = "0.0 cm";
+  document.getElementById('costEst').textContent = "₹0.00";
+  volumeResults.style.display = 'none';
+  scanVisual.style.display = 'none';
+  dropzone.style.display = 'flex';
+}
+
+// -------------------------------------------------------------
+// Live Interactive Geospatial Map Setup
+// -------------------------------------------------------------
+function initMap() {
+  leafMap = L.map('map', { zoomControl: false }).setView([17.3850, 78.4867], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(leafMap);
+  
+  // Load sample points
+  const points = [
+    [17.405, 78.475, 'PTH-7842', 'critical', 94],
+    [17.372, 78.495, 'PTH-6921', 'high', 86],
+    [17.392, 78.515, 'PTH-5104', 'medium', 63],
+    [17.355, 78.470, 'PTH-4091', 'low', 41]
+  ];
+  
+  points.forEach(p => {
+    addMarkerToMap(p[0], p[1], p[2], p[3], p[4]);
+  });
+}
+
+function addMarkerToMap(lat, lon, id, severity, priority) {
+  const color = 
+    severity === 'critical' ? '#ff4b4b' : 
+    severity === 'high' ? '#9061f9' : 
+    severity === 'medium' ? '#ffde00' : '#00f5d4';
+    
+  const customIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 0 10px ${color}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+  
+  const marker = L.marker([lat, lon], { icon: customIcon })
+    .addTo(leafMap)
+    .bindPopup(`
+      <div style="font-family: 'Outfit', sans-serif; color: #000; padding: 4px;">
+        <h4 style="margin:0 0 6px; font-weight:700;">${id}</h4>
+        <span style="font-size:12px; background:${color}; color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold; text-transform:uppercase;">${severity}</span>
+        <div style="font-size:12px; margin-top:8px;">Priority Dispatch Score: <b>${priority}/100</b></div>
+        <button onclick="scrollToSec('dashboard')" style="margin-top:10px; width:100%; border:none; background:#9061f9; color:#fff; padding:6px; border-radius:4px; font-weight:bold; cursor:pointer;">View Console</button>
+      </div>
+    `);
+    
+  mapMarkers.push(marker);
+}
+
+// Map Search Geocoding (Nominatim API)
+async function searchMapLocation() {
+  const query = document.getElementById('mapSearchInput').value;
+  if (!query) return;
+  
+  // Show loading state on button
+  const searchBtn = document.querySelector('button[onclick="searchMapLocation()"]');
+  const originalText = searchBtn.textContent;
+  searchBtn.textContent = 'Searching...';
+  
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const lat = data[0].lat;
+      const lon = data[0].lon;
+      
+      leafMap.setView([lat, lon], 15);
+      
+      // Place a target marker to file a report
+      const searchMarker = L.marker([lat, lon]).addTo(leafMap)
+        .bindPopup(`
+          <div style="font-family: 'Outfit', sans-serif; color: #000; padding: 4px; max-width: 200px;">
+            <h4 style="margin:0 0 6px; font-weight:700; color: #9061f9;">Location Found</h4>
+            <p style="font-size:12px; line-height:1.4; margin-bottom:12px;">${data[0].display_name.split(',').slice(0, 3).join(',')}</p>
+            <button onclick="openManualReportModal()" style="width:100%; border:none; background:#9061f9; color:#fff; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer;">File Report Here</button>
+          </div>
+        `);
+      searchMarker.openPopup();
+      mapMarkers.push(searchMarker);
+      
+    } else {
+      showToast("Location not found. Please try a different area name.");
+    }
+  } catch(e) {
+    console.error("Geocoding failed", e);
+    showToast("Error connecting to search service.");
+  } finally {
+    searchBtn.textContent = originalText;
+  }
+}
+
+// Manual Report Modal Functions
+function openManualReportModal() {
+  document.getElementById('manualReportModal').style.display = 'flex';
+}
+
+function submitManualReport() {
+  const name = document.getElementById('reporterName').value;
+  const age = document.getElementById('reporterAge').value;
+  const summary = document.getElementById('reporterSummary').value;
+  
+  if(!name || !summary) {
+    alert("Please fill in at least your name and a summary of the problem.");
+    return;
+  }
+  
+  document.getElementById('manualReportModal').style.display = 'none';
+  showToast("Thank you, " + name + ". Your report has been submitted successfully!");
+  
+  const id = "PTH-" + Math.floor(1000 + Math.random() * 8999);
+  const dateStr = new Date().toLocaleString();
+  
+  let history = JSON.parse(localStorage.getItem('reportsHistory') || '[]');
+  history.push({
+    id: id,
+    location: 'Manual Report by ' + name + (age ? ' (Age: ' + age + ')' : ''),
+    severity: 'medium',
+    volume: 'N/A',
+    status: 'pending',
+    date: dateStr
+  });
+  localStorage.setItem('reportsHistory', JSON.stringify(history));
+  
+  // Clear the form
+  document.getElementById('reporterName').value = '';
+  document.getElementById('reporterAge').value = '';
+  document.getElementById('reporterPhoto').value = '';
+  document.getElementById('reporterSummary').value = '';
+}
+
+// Scroll detection to highlight active nav button
+window.addEventListener('scroll', () => {
+  const scrollPos = window.scrollY + 200;
+  const sections = ['home', 'scanner', 'mapsec', 'dashboard'];
+  
+  sections.forEach(secId => {
+    const el = document.getElementById(secId);
+    if (el) {
+      const top = el.offsetTop;
+      const height = el.offsetHeight;
+      if (scrollPos >= top && scrollPos < top + height) {
+        document.querySelectorAll('.nav-links button').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.getAttribute('onclick').includes(secId)) {
+            btn.classList.add('active');
+          }
+        });
+      }
+    }
+  });
+});
+
+// Initialise widgets on page load
+window.addEventListener('DOMContentLoaded', () => {
+  initMap();
+});
+</script>
+</body>
+</html>
